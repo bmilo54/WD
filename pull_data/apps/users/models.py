@@ -48,6 +48,15 @@ class UserConfig(TimeStampedModel):
         verbose_name="Target Accounts to Retrieve",
         blank=True, null=True
     )
+    max_attempts = models.PositiveIntegerField(
+        verbose_name="Max Phone Number Attempts",
+        blank=True, null=True,
+        help_text=(
+            "Hard limit on total phone numbers tried per job, across all "
+            "attempts, before it stops even if the target account count "
+            "hasn't been reached. Leave blank to use the system default (10)."
+        ),
+    )
 
     def __str__(self):
         return f"{self.user.username}'s Configuration"

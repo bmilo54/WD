@@ -52,7 +52,7 @@ class _JobRunConfig:
         self.default_country = job.effective_country
         self.max_price = job.effective_max_price
         self.default_password = job.effective_default_password
-
+        self.max_attempts = job.effective_max_attempts
 
 class FacebookRecoveryBot:
     def __init__(self, job_id: int):
@@ -66,7 +66,9 @@ class FacebookRecoveryBot:
         self.config = _JobRunConfig(self.job)
         self.country = self.config.default_country
         self.target = self.job.effective_target_accounts
-        self.max_attempts = 10 # Set a hard limit on total attempts to prevent infinite loops
+        # Hard limit on total attempts to prevent infinite loops - job
+        # override, else the user's saved UserConfig, else a system default.
+        self.max_attempts = self.config.max_attempts
 
     def start(self):
         logger.info(f"Starting Facebook Recovery Job {self.job.id} for user {self.user.username}")

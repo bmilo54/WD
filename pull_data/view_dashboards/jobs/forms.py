@@ -45,6 +45,12 @@ class JobCreateForm(forms.Form):
         required=False,
         help_text="Leave blank to use your saved default password.",
     )
+    max_attempts = forms.IntegerField(
+        label="Max Phone Number Attempts (override)",
+        min_value=1,
+        required=False,
+        help_text="Leave blank to use your saved default (or the system default of 10 if you haven't set one).",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

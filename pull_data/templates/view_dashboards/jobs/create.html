@@ -137,6 +137,10 @@
                             {% if user_config.default_password %}{{ user_config.default_password|slice:":2" }}••••••{% else %}Not set{% endif %}
                         </span>
                     </li>
+                    <li>
+                        <span class="text-body-color-60">Max Phone Number Attempts</span>
+                        <span class="fw-medium text-secondary">{{ user_config.max_attempts|default:"Not set (system default: 10)" }}</span>
+                    </li>
                 </ul>
             {% else %}
                 <div class="text-center py-4">

@@ -3,9 +3,9 @@ from .models import UserConfig
 
 @admin.register(UserConfig)
 class UserConfigAdmin(admin.ModelAdmin):
-    list_display = ('user', 'default_country', 'max_price', 'default_password', 'target_accounts')
-    search_fields = ('user', 'default_country', 'max_price', 'default_password', 'target_accounts')
-    list_filter = ('default_country', 'max_price', 'default_password', 'target_accounts')
+    list_display = ('user', 'default_country', 'max_price', 'default_password', 'target_accounts', 'max_attempts')
+    search_fields = ('user', 'default_country', 'max_price', 'default_password', 'target_accounts', 'max_attempts')
+    list_filter = ('default_country', 'max_price', 'default_password', 'target_accounts', 'max_attempts')
     ordering = ('-created',)
 
     class Media:

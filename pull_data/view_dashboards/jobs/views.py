@@ -59,6 +59,7 @@ class JobCreateView(DashboardMixin, GroupRequiredMixin, FormView):
             'target_accounts': form.cleaned_data.get('target_accounts'),
             'max_price': form.cleaned_data.get('max_price'),
             'default_password': form.cleaned_data.get('default_password') or None,
+            'max_attempts': form.cleaned_data.get('max_attempts'),
         }
 
         try:

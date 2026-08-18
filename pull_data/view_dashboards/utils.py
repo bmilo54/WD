@@ -54,9 +54,9 @@ def start_automation_job(user, **overrides):
     Creates an AutomationJob for `user` and enqueues the Celery task to run it.
 
     `overrides` are optional per-run AutomationJob field overrides (country,
-    target_accounts, sms_provider, sms_api_key, max_price, default_password)
-    - leave any of them out/None to use the user's saved UserConfig defaults
-    for that setting.
+    target_accounts, sms_provider, sms_api_key, max_price, default_password,
+    max_attempts) - leave any of them out/None to use the user's saved
+    UserConfig defaults for that setting.
 
     Raises `JobStartError` if the user isn't ready to start a job, already
     has one in progress, or the task queue can't be reached.

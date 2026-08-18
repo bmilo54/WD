@@ -3,6 +3,11 @@ from core.abstract_models import TimeStampedModel
 from django.contrib.auth.models import User
 from .choices import STATUS_CHOICES, FAIL_REASON_CHOICES, FLOW_CHOICES
 
+# Used when neither the job override nor the user's saved UserConfig sets
+# a max_attempts value - keeps a hard ceiling on phone numbers tried so a
+# misconfigured job can't loop indefinitely.
+DEFAULT_MAX_ATTEMPTS = 10
+
 class AutomationJob(TimeStampedModel):
     """
     This is the automation task create model.
@@ -46,6 +51,14 @@ class AutomationJob(TimeStampedModel):
     default_password = models.CharField(
         verbose_name="Default Password (Override)", max_length=10, blank=True, null=True,
         help_text="Overrides the user's saved default password for this run only. Leave blank to use their saved default.",
+    )
+    max_attempts = models.PositiveIntegerField(
+        verbose_name="Max Phone Number Attempts (Override)", blank=True, null=True,
+        help_text=(
+            "Overrides the user's saved max attempts for this run only. "
+            "Leave blank to use their saved default, or the system default "
+            f"({DEFAULT_MAX_ATTEMPTS}) if they haven't set one either."
+        ),
     )
 
     def __str__(self):
@@ -91,6 +104,15 @@ class AutomationJob(TimeStampedModel):
     def effective_default_password(self):
         config = self._config
         return self.default_password or (config.default_password if config else None)
+    
+    @property
+    def effective_max_attempts(self):
+        config = self._config
+        if self.max_attempts:
+            return self.max_attempts
+        if config and config.max_attempts:
+            return config.max_attempts
+        return DEFAULT_MAX_ATTEMPTS
 
     @property
     def progress(self):
