@@ -1,0 +1,16 @@
+{% load cores_tags %}
+{% with widget.attrs.id as id %}
+<div>
+  {% for category in choices.queryset.all %}
+    {% if forloop.first %}<ul{% if id %} id="{{ id }}"{% endif %}{% if widget.attrs.class %} class="{{ widget.attrs.class }}"{% endif %}>{% endif %}
+    {% if not forloop.first and category.is_root %}</ul><ul{% if id %} id="{{ id }}"{% endif %}{% if widget.attrs.class %} class="{{ widget.attrs.class }}"{% endif %}>{% endif %}
+        <li>
+          <label for="{{ id }}_{{ forloop.counter0 }}"{% if category.is_leaf is False %} style="font-weight: bold;"{% endif %}>
+              <input type="checkbox" name="{{ widget.name }}" value="{{ category.pk }}"{% if category.pk|in_list:widget.value %} checked="checked" {% endif %}id="{{ id }}_{{ forloop.counter0 }}" class="group-checkbox" data-target="{{ category.path }}">
+              {{ category }}
+          </label>
+        </li>
+    {% if forloop.last %}</ul>{% endif %}
+  {% endfor %}
+</div>
+{% endwith %}

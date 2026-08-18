@@ -1,0 +1,10 @@
+/* Custom CSS for CKEditor */
+.ck-editor-container {
+    width: 100%;
+    max-width: inherit;
+    overflow: hidden;
+}
+
+.ck.ck-toolbar-dropdown>.ck-dropdown__panel {
+    max-width: 55vw !important;
+}

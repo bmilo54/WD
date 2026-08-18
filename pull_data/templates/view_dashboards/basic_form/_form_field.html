@@ -1,0 +1,125 @@
+{% load static widget_tweaks %}
+
+{% if field.is_hidden %}
+    {{ field }}
+{% else %}
+    <div class="col-lg-{{ col_size|default:'6' }}">
+        <div class="mb-20">
+            {% if field.label %}
+                <label class="label fs-16 mb-2">
+                    {{ field.label }}
+                    {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+            {% endif %}
+
+            {% if field.errors %}
+                {# Handle datepicker fields with errors #}
+                {% if field.field.widget.attrs.extra_type == 'datepicker' %}
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <span class="material-symbols-outlined">event_available</span>
+                        </span>
+                        {% render_field field class+='form-control is-invalid litepickerSingleDate' autocomplete="off" %}
+                        <div class="invalid-feedback">
+                            {{ field.errors.0|safe }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="form-floating">
+                        {% render_field field class+="form-control is-invalid" autocomplete="off" %}
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        
+                        <div class="invalid-feedback">
+                            {{ field.errors.0|safe }}
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% else %}
+                {# Check if this is a CKEditor widget - don't use form-floating #}
+                {% if field.field.widget.attrs.widget_type == 'ckeditor' %}
+                    {# CKEditor fields - render without form-floating #}
+                    {% render_field field %}
+
+                {% elif field.field.widget.input_type == "file" %}
+                    {# Handle file / image fields - rendered manually outside form-floating #}
+                    {# so the Remove checkbox label sits correctly beside the checkbox #}
+                    {% if field.value %}
+                        {# Non-image file - show preview link #}
+                        <div class="mb-2">
+                            <span class="text-muted small">Currently:</span>
+                            <a href="{{ field.value.url }}" target="_blank" class="ms-1 small">{{ field.value.name }}</a>
+                        </div>
+                        {# Remove / Clear checkbox #}
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="{{ field.html_name }}-clear" id="id_{{ field.html_name }}_clear" class="form-check-input">
+                            <label class="form-check-label" for="id_{{ field.html_name }}_clear">
+                                Remove {{ field.label }}
+                            </label>
+                        </div>
+                    {% endif %}
+                    {# New file input #}
+                    <input type="file" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control{% if field.errors %} is-invalid{% endif %}">
+
+                {% else %}
+                    <div class="form-floating">
+                        {% if field.field.widget.input_type == 'select' %}
+                            {# Handle select dropdowns (including multiple select) #}
+                            {% if field.field.widget.attrs.multiple or field.field.widget.allow_multiple_selected %}
+                                {% render_field field class+='form-control form-select select2' style="height: auto;" %}
+                            {% else %}
+                                {% render_field field class+='form-control form-select select2' %}
+                            {% endif %}
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+
+                        {% elif field.field.widget.attrs.extra_type == 'datepicker' %}
+                            {# Handle datepicker fields #}
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <span class="material-symbols-outlined">event_available</span>
+                                </span>
+                                {% render_field field class+='form-control litepickerSingleDate' autocomplete="off" %}
+                            </div>
+
+                        {% elif field.field.widget.input_type == 'checkbox' %}
+                            {# Handle checkbox fields #}
+                            <div class="form-check">
+                                {% render_field field class="form-check-input" %}
+                                <!-- <label class="form-check-label" for="{{ field.id_for_label }}">
+                                    {{ field.label }}
+                                </label> -->
+                            </div>
+
+                        {% elif field.field.widget.input_type == 'radio' %}
+                            {# Handle radio fields #}
+                            {% for value, label in field.field.choices %}
+                                <div class="form-check">
+                                    <input type="radio" 
+                                        name="{{ field.html_name }}" 
+                                        value="{{ value }}" 
+                                        id="id_{{ field.html_name }}_{{ forloop.counter0 }}"
+                                        class="form-check-input"
+                                        {% if field.value and value|stringformat:"s" == field.value|stringformat:"s" %}checked{% endif %}>
+                                    <label class="form-check-label" for="id_{{ field.html_name }}_{{ forloop.counter0 }}">
+                                        {{ label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+
+                        {% else %}
+                            {# Default text input #}
+                            {% render_field field class+="form-control" %}
+                            {% if not field.field.widget.attrs.class or "phone" not in field.field.widget.attrs.class %}
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            {% if field.help_text %}
+                <div class="form-text text-body small">{{ field.help_text|safe }}</div>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}

@@ -1,0 +1,28 @@
+<div style="display: inline-block;">
+  {% if thumbnail_image %}
+    <div>
+      <a data-fslightbox="lightbox-basic" data-fancybox="gallery" data-caption="{{ filename }}" href="{{ widget.value.url }}" style="display: inline-block; margin-bottom: 10px;">
+        <img src="{{ thumbnail_image.url }}" class="img-thumbnail" style="border: 1px solid #CCC; padding: 2px;" />
+      </a>
+    </div>
+  {% endif %}
+  <div>
+    {% if widget.is_initial %}
+      <strong>{{ widget.initial_text }}:</strong>
+      {% if not thumbnail_image %}<a data-fancybox="gallery" data-caption="{{ filename }}" href="{{ widget.value.url }}">{% endif %}
+        {{ filename }}
+      {% if not thumbnail_image %}</a>{% endif %}
+  </div>
+  <div>
+      {% if not widget.required %}
+        <div class="checkbox">
+          <label for="{{ widget.checkbox_id }}">
+            <input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}" style="position: relative; top: 2px; margin-right: 5px;" />
+            {{ widget.clear_checkbox_label }}
+          </label>
+        </div>
+      {% endif %}
+    {% endif %}
+    <input type="{{ widget.type }}" name="{{ widget.name }}"{% for name, value in widget.attrs.items %}{% if value is not False %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}{% endif %}{% endfor %} style="padding:0; margin: 4px 0;" />
+  </div>
+</div>

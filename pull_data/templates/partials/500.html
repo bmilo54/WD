@@ -1,0 +1,23 @@
+{% extends 'view_dashboards/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+{% endblock extra_css %}
+
+{% block content %}
+    <div class="main-content-container overflow-hidden">
+        <div class="card bg-white border border-white rounded-10 p-20 text-center mb-4">
+            <div style="margin-bottom: 35px;">
+                <img src="{% static 'images/error-500.png' %}" alt="500 Server Error">
+            </div>
+            <h3 class="fs-26 mb-10">OOPS! 500 Server Error!</h3>
+            <p class="mb-30 fs-16 lh-1-8">Something went wrong on our side. Please try again in a few moments.</p>
+            <div>
+                <a href="{% url 'view_dashboards:dashboard' %}" class="btn btn-primary text-white">Back to Home</a>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block page_js %}
+{% endblock page_js %}

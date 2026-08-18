@@ -1,0 +1,203 @@
+{% extends 'view_dashboards/base.html' %}
+{% load static widget_tweaks %}
+
+{% block extra_css %}
+{% endblock extra_css %}
+
+{% block content %}
+<div class="main-content-container overflow-hidden">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 mt-1">
+        <h3 class="mb-0">{{ title }}</h3>
+
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb align-items-center mb-0 lh-1">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'view_dashboards:dashboard' %}" class="d-flex align-items-center text-decoration-none">
+                        <i class="ri-home-8-line fs-15 text-primary me-1"></i>
+                        <span class="text-body fs-14 hover">Dashboard</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    <span>Facebook Accounts</span>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    <span class="text-secondary">Facebook Accounts</span>
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="card bg-white rounded-10 border border-white mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-20 pb-20">
+            <form role="form" method="GET" class="form-inline">
+                <button class="btn bg-success bg-opacity-10 fw-normal fs-16 text-success" name="_export_accounts">Full Export Accounts</button>
+            </form>
+
+            <select class="datatables-selector form-select select2 filter-select no-search shadow-none" style="width:90px">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+        
+        <div class="d-flex justify-content-end align-items-center flex-wrap gap-4 p-20 pt-0 pb-20">
+            {% for field in filter_form %}
+                {% if field.name != 'search' %}
+                    <div class="">
+                        <div class="d-flex align-items-lg-center flex-column flex-lg-row">
+                            <label class="ws-nowrap me-3 mb-0">{{ field.label }}</label>
+                            {% render_field field class+="form-select select2 filter-select no-search shadow-none" %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+
+            {% for field in filter_form %}
+                {% if field.name == 'search' %}
+                    <div class="table-src-form position-relative m-0">
+                        <input type="text" class="form-control w-250 datatables-search" placeholder="Search ...">
+                        <div class="src-btn position-absolute top-50 start-0 translate-middle-y bg-transparent p-0 border-0">
+                            <span class="material-symbols-outlined">search</span>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="default-table-area mx-minus-1 table-contact-list">
+            <table class="table align-middle" id="dataTables">
+                <thead>
+                    <tr>
+                        <th scope="col" class="fw-medium">ID</th>
+                        <th scope="col" class="fw-medium">UID</th>
+                        <th scope="col" class="fw-medium">Password</th>
+                        <th scope="col" class="fw-medium">Active Status</th>
+                        <th scope="col" class="fw-medium">Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock content %}
+
+{% block page_js %}
+<script>
+    $(document).ready(function() {
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        var $table = $('#dataTables');
+        $table.dataTable({
+            dom: '<"table-responsive"t>' +
+            '<"row p-20 d-flex justify-content-between align-items-center"' +
+                '<"col-sm-12 col-md-auto"i>' +
+                '<"col-sm-12 col-md-auto"p>' +
+            '>',
+            searchDelay: 500,
+            processing: true,
+            serverSide: true,
+            "aaSorting": [],
+            stateSave: false,
+            ajax: {
+                url: "{% url 'view_dashboards:accounts:datatable' %}",
+                type: 'POST',
+                data: function(d){
+                    d.csrfmiddlewaretoken = "{{ csrf_token }}";
+                },
+            },
+            columnDefs: [
+                {
+                    targets: 0,
+                    'createdCell':  function (td, cellData, rowData, row, col) {
+                        $(td).attr('table-filter', 'name');
+                    }
+                },
+                {
+                    targets: [-1],
+                    orderable: false,
+                    className: 'text-end'
+                },
+                {
+                    targets: [2, 3],
+                    orderable: false,
+                },
+                {
+                    targets: [],
+                    visible: false,
+                },
+                { targets: '_all', orderSequence: [ 'asc', 'desc' ] },
+            ],
+            language: {
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                infoEmpty: "Showing 0 to 0 of 0 entries",
+                infoFiltered: "(filtered from _MAX_ total entries)",
+                paginate: {
+                    first: '<i class="ri-arrow-left-double-line"></i>',
+                    last: '<i class="ri-arrow-right-double-line"></i>',
+                    next: '<i class="ri-arrow-right-s-line"></i>',
+                    previous: '<i class="ri-arrow-left-s-line"></i>'
+                },
+            },
+            drawCallback: function() {
+                // Move dataTables info to footer of table
+                $table
+                    .closest('.dataTables_wrapper')
+                    .find('.dt-info')
+                    .appendTo( $table.closest('.dataTables_wrapper').find('.results-info-wrapper') );
+
+                // Move dataTables pagination to footer of table
+                $table
+                    .closest('.dataTables_wrapper')
+                    .find('.dt-paging')
+                    .appendTo( $table.closest('.dataTables_wrapper').find('.pagination-wrapper') );
+                
+                $table.closest('.dataTables_wrapper').find('.pagination').addClass('pagination-modern pagination-modern-spacing justify-content-center');
+            },
+            rowCallback: function (row, data, index) {
+                var status = data[5];
+                if (status == 'Inactive') {
+                    $(row).addClass('bg-inactive');
+                }
+            }
+        });
+
+        var dataTable = $table.DataTable();
+
+        // Page length
+        $(document).on('change', '.datatables-selector', function(){
+            var $this = $(this),
+                $dataTable = $('#dataTables').DataTable();
+
+            $dataTable.page.len( $this.val() ).draw();
+        });
+
+        
+        // Link "Search" field to show results based in the term entered (the "Filter By" is considered to filter the results)
+        $(document).on('input keyup', '.datatables-search', function(){
+            var $this = $(this),
+                $dataTable = $('#dataTables').DataTable();
+
+            $dataTable.search( $this.val() ).draw();
+        });
+    });
+</script>
+{% endblock page_js %}

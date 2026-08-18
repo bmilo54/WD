@@ -1,0 +1,321 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+		<!-- Required meta tags -->
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+		<!-- Links Of CSS File -->
+		<link rel="stylesheet" href="{% static 'css/sidebar-menu.css' %}">
+		<link rel="stylesheet" href="{% static 'css/simplebar.css' %}">
+		<link rel="stylesheet" href="{% static 'css/prism.css' %}">
+        <link rel="stylesheet" href="{% static 'css/quill.snow.css' %}">
+        <link rel="stylesheet" href="{% static 'css/remixicon.css' %}">
+        <link rel="stylesheet" href="{% static 'css/swiper-bundle.min.css' %}">
+        <link rel="stylesheet" href="{% static 'css/jsvectormap.min.css' %}">
+		<link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+        <!-- Litepicker CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" rel="stylesheet" />
+
+        <!-- Tempus Dominus Styles -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" crossorigin="anonymous">
+
+        <!-- Select2 CSS -->
+        <link href="{% static 'plugins/select2/css/select2.min.css' %}" rel="stylesheet" />
+        <link href="{% static 'plugins/select2/css/select2-bootstrap4.min.css' %}" rel="stylesheet" />
+
+        <!-- Datatable CSS -->
+        <link rel="stylesheet" href="{% static 'plugins/datatables/css/dataTables.bootstrap5.min.css' %}" />
+
+        <!-- Custom CSS -->
+		<link rel="stylesheet" href="{% static 'css/custom.css' %}?v=1.0.1">
+
+		<!-- Favicon -->
+		<link rel="icon" type="image/png" href="{% static 'images/logo/fav-icon.jpg' %}">
+        
+		<!-- Title -->
+		<title>{{ page_title }}</title>
+
+        {% block extra_css %}
+        {% endblock extra_css %}
+    </head>
+    <body class="bg-body-bg">
+        <!-- Back to top button -->
+        <button type="button" class="btn btn-danger btn-floating btn-lg" id="btn-back-to-top">
+            <span class="material-symbols-outlined">
+                arrow_upward
+            </span>
+        </button>
+
+        
+        <!-- Start Preloader Area -->
+        <div class="preloader" id="preloader">
+            <div class="preloader">
+                <div class="waviy position-relative">
+                    <span class="d-inline-block">W</span>
+                    <span class="d-inline-block">D</span>
+                </div>
+            </div>
+        </div>
+        <!-- End Preloader Area -->
+
+        <!-- Start Sidebar Area -->
+        {% include 'view_dashboards/_group_dashboard/superadmin/_sidebar.html' %}
+        <!-- End Sidebar Area -->
+
+        <!-- Start Main Content Area -->
+        <div class="container-fluid">
+            <div class="main-content d-flex flex-column">
+                <!-- Start Header Area -->
+                {% include 'view_dashboards/_group_dashboard/superadmin/_header.html' %}
+                <!-- End Header Area -->
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert fs-16 alert-{% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible" role="alert">
+                            {{ message|safe }}
+                            <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% block content %}
+                {% endblock content %}
+
+                <div class="flex-grow-1"></div>
+
+                <!-- Start Footer Area -->
+                <footer class="footer-area bg-white text-center rounded-10 rounded-bottom-0">
+                    <p class="fs-16 text-body">© <span class="text-secondary">2026 WD All Rights Reserved</span></p>
+                </footer>
+                <!-- End Footer Area -->
+            </div>
+        </div>
+        <!-- Start Main Content Area -->
+
+        <!-- Start Theme Setting Area -->
+        {% comment %} <button class="btn btn-primary theme-settings-btn p-0 position-fixed z-2 text-center rounded-circle" style="bottom: 24px; right: 24px; width: 56px; height: 56px; line-height: 54px;" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasScrolling" aria-controls="offcanvasScrolling">
+            <i class="text-white ri-settings-3-fill fs-28" data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Click On Theme Settings"></i>
+        </button>
+
+        <!-- Start Theme Setting Area -->
+        <div class="offcanvas offcanvas-end bg-white border-0" data-bs-scroll="true" data-bs-backdrop="true" tabindex="-1" id="offcanvasScrolling" aria-labelledby="offcanvasScrollingLabel" style="box-shadow: 0 4px 20px #2f8fe812 !important; max-width: 300px;">
+            <div class="offcanvas-header bg-light p-20">
+                <h5 class="offcanvas-title fs-18 fw-medium" id="offcanvasScrollingLabel">Configuration Panel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body p-0 overflow-hidden">
+                <div class="last-child-none" style="max-height: 858px;" data-simplebar>
+                    <div class="p-20 border-bottom child">
+                        <h4 class="fs-15 fw-medium mb-12">RTL Mode</h4>
+                        <div class="rtl-btn">
+                            <label id="switch">
+                                <input type="checkbox" onchange="toggleTheme()" class="toggle-switch rtl-switch" id="slider">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="p-20 border-bottom child">
+                        <h4 class="fs-15 fw-medium mb-12">Only Sidebar Dark</h4>
+                        <div class="sidebar-light-dark" id="sidebar-light-dark">
+                            <input type="checkbox" class="toggle-switch sidebar-dark-switch">
+                        </div>
+                    </div>
+                    <div class="p-20 border-bottom child">
+                        <h4 class="fs-15 fw-medium mb-12">Only Header Dark</h4>
+                        <div class="header-light-dark" id="header-light-dark">
+                            <input type="checkbox" class="toggle-switch header-dark-switch">
+                        </div>
+                    </div>
+                    <div class="p-20 border-bottom child">
+                        <h4 class="fs-15 fw-medium mb-12">Right Sidebar</h4>
+                        <div class="right-sidebar" id="right-sidebar">
+                            <input type="checkbox" class="toggle-switch right-sidebar-switch">
+                        </div>
+                    </div>
+                    <div class="p-20 border-bottom child">
+                        <h4 class="fs-15 fw-medium mb-12">Hide Sidebar</h4>
+                        <div class="icon-sidebar" id="icon-sidebar">
+                            <input type="checkbox" class="toggle-switch icon-sidebar-switch">
+                        </div>
+                    </div>
+                    <div class="p-20 border-bottom child">
+                        <h4 class="fs-15 fw-medium mb-12">Bordered Card</h4>
+                        <div class="card-border" id="card-border">
+                            <input type="checkbox" class="toggle-switch border-switch">
+                        </div>
+                    </div>
+                    <div class="p-20 border-bottom child">
+                        <h4 class="fs-15 fw-medium mb-12">Card Border Radius</h4>
+                        <div class="card-radius-square" id="card-radius-square">
+                            <input type="checkbox" class="toggle-switch border-radius-switch">
+                        </div>
+                    </div>
+                    
+                    <div class="p-20 border-bottom child">
+                        <a href="#" class="btn btn-primary text-white">
+                            Buy Fila
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div> {% endcomment %}
+        <!-- End Theme Setting Area -->
+     
+        <!-- Link Of JS File -->
+        <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+        {% comment %} <script src="{% static 'js/jquery-4.0.0.min.js' %}"></script> {% endcomment %}
+        <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+        <script src="{% static 'js/sidebar-menu.js' %}"></script>
+        <script src="{% static 'js/quill.min.js' %}"></script>
+        <script src="{% static 'js/data-table.js' %}"></script>
+        <script src="{% static 'js/prism.js' %}"></script>
+        <script src="{% static 'js/clipboard.min.js' %}"></script>
+        <script src="{% static 'js/simplebar.min.js' %}"></script>
+        <script src="{% static 'js/apexcharts.min.js' %}"></script>
+        <script src="{% static 'js/echarts.min.js' %}"></script>
+        <script src="{% static 'js/swiper-bundle.min.js' %}"></script>
+        <script src="{% static 'js/fullcalendar.main.js' %}"></script>
+        <script src="{% static 'js/jsvectormap.min.js' %}"></script>
+        <script src="{% static 'js/world-merc.js' %}"></script>
+
+        <!-- Litepicker JS -->
+        <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js" crossorigin="anonymous"></script>
+        <script src="{% static 'js/litepicker.js' %}"></script>
+
+        <!-- Popperjs -->
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" crossorigin="anonymous"></script>
+        <!-- Tempus Dominus JavaScript -->
+        <script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/js/tempus-dominus.min.js" crossorigin="anonymous"></script>
+
+        <!-- Select2 JS -->
+        <script src="{% static 'plugins/select2/js/select2.full.min.js' %}"></script>
+        
+        <!-- Datatable JS -->
+        <script src="{% static 'plugins/datatables/js/dataTables.min.js' %}"></script>
+		<script src="{% static 'plugins/datatables/js/dataTables.bootstrap5.min.js' %}"></script>
+
+        <!-- Custom JS -->
+        <script src="{% static 'js/custom/apexcharts.js' %}"></script>
+        <script src="{% static 'js/custom/echarts.js' %}"></script>
+        <script src="{% static 'js/custom/maps.js' %}"></script>
+        <script src="{% static 'js/custom/custom.js' %}?v=1.0.1"></script>
+        <script src="{% static 'js/custom/event-setup-sidebar.js' %}?v=1.0.0"></script>
+        
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+        {% comment %} <script>
+            $('.datepicker').datepicker({
+                format: 'dd/mm/yyyy',      // display & parsing format
+                autoclose: true,           // close calendar after selecting
+                todayHighlight: true,
+                orientation: "bottom auto"
+            });
+        </script> {% endcomment %}
+        <script>
+            $(document).ready(function() {   
+                $('.select2').each(function () {
+                    const $this = $(this);
+                    initSelect2($this);
+                });
+            });
+
+            
+            $(function () {
+                $('.timepicker').each(function () {
+                    new tempusDominus.TempusDominus(this, {
+                        display: {
+                            viewMode: 'clock',
+                            components: {
+                                decades: false,
+                                year: false,
+                                month: false,
+                                date: false,
+                                hours: true,
+                                minutes: true,
+                                seconds: false
+                            }
+                        },
+                        localization: {
+                            format: 'hh:mm T'
+                        }
+                    });
+                });
+            });
+
+
+            setTimeout(() => {
+                document.querySelectorAll('.alert-dismissible').forEach(el => el.remove());
+            }, 15000);
+        </script>
+        <script>
+            (function () {
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+
+                document.addEventListener('submit', function (e) {
+                    const form = e.target;
+                    if (!(form instanceof HTMLFormElement) || e.defaultPrevented) return;
+                    if (form.getAttribute('data-skip-submit-loading') === '1') return;
+
+                    if (form.dataset.formSubmitting === '1') {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    const submitter = e.submitter;
+                    let submitButton = null;
+                    if (submitter && submitter.matches && (submitter.matches('button[type="submit"]') || submitter.matches('input[type="submit"]'))) {
+                        submitButton = submitter;
+                    } else {
+                        submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
+                    }
+                    if (!submitButton || submitButton.disabled) return;
+
+                    form.dataset.formSubmitting = '1';
+                    submitButton.disabled = true;
+                    submitButton.setAttribute('aria-busy', 'true');
+
+                    const loadingText = (submitButton.dataset && submitButton.dataset.submitLoading)
+                        ? submitButton.dataset.submitLoading
+                        : 'Please wait…';
+
+                    if (submitButton.tagName === 'BUTTON') {
+                        submitButton.dataset.originalHtml = submitButton.innerHTML;
+                        submitButton.innerHTML =
+                            '<span class="spinner-border spinner-border-sm align-middle me-2" role="status" aria-hidden="true"></span>' +
+                            '<span class="align-middle">' + escapeHtml(loadingText) + '</span>';
+                    } else {
+                        submitButton.dataset.originalValue = submitButton.value;
+                        submitButton.value = loadingText;
+                    }
+                }, false);
+
+                /* Restore buttons when the page is restored from bfcache (e.g. Back after a slow submit). */
+                window.addEventListener('pageshow', function (ev) {
+                    if (!ev.persisted) return;
+                    document.querySelectorAll('form[data-form-submitting="1"]').forEach(function (form) {
+                        delete form.dataset.formSubmitting;
+                        var busy = form.querySelector('button[type="submit"][aria-busy="true"], input[type="submit"][aria-busy="true"]');
+                        if (!busy) return;
+                        busy.disabled = false;
+                        busy.removeAttribute('aria-busy');
+                        if (busy.tagName === 'BUTTON' && busy.dataset.originalHtml) {
+                            busy.innerHTML = busy.dataset.originalHtml;
+                        } else if (busy.dataset.originalValue != null) {
+                            busy.value = busy.dataset.originalValue;
+                        }
+                    });
+                });
+            })();
+        </script>
+        
+        {% block page_js %}
+        {% endblock page_js %}
+    </body>
+</html>

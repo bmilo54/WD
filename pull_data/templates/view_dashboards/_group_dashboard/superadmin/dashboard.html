@@ -1,0 +1,218 @@
+{% extends 'view_dashboards/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .job-progress-bar {
+        height: 10px;
+        border-radius: 999px;
+        background-color: #eef2f6;
+        overflow: hidden;
+    }
+    .job-progress-bar__fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+        transition: width 0.25s ease;
+    }
+    .job-progress-bar__fill.is-failed {
+        background: linear-gradient(90deg, #f87171 0%, #dc2626 100%);
+    }
+    .job-readiness-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 0 0 20px 0;
+        padding: 0;
+        list-style: none;
+    }
+    .job-readiness-list li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #b91c1c;
+    }
+    .job-readiness-list .material-symbols-outlined {
+        font-size: 18px;
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="main-content-container overflow-hidden">
+    <div class="row">
+        <div class="col-12">
+            <div class="row">
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+                        <h3 class="fw-medium mb-10">Total Jobs</h3>
+                        <h2 class="lh-1 fs-26 mb-20 fw-medium">{{ job_counts.total }}</h2>
+                        <div class="text-center bg-light rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 76px; height: 76px;">
+                            <span class="material-symbols-outlined fs-32 text-secondary">smart_toy</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+                        <h3 class="fw-medium mb-10">Running</h3>
+                        <h2 class="lh-1 fs-26 mb-20 fw-medium text-primary">{{ job_counts.running }}</h2>
+                        <div class="text-center bg-primary bg-opacity-10 rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 76px; height: 76px;">
+                            <span class="material-symbols-outlined fs-32 text-primary">play_circle</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+                        <h3 class="fw-medium mb-10">Success</h3>
+                        <h2 class="lh-1 fs-26 mb-20 fw-medium text-success">{{ job_counts.success }}</h2>
+                        <div class="text-center bg-success bg-opacity-10 rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 76px; height: 76px;">
+                            <span class="material-symbols-outlined fs-32 text-success">check_circle</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+                        <h3 class="fw-medium mb-10">Failed</h3>
+                        <h2 class="lh-1 fs-26 mb-20 fw-medium text-danger">{{ job_counts.failed }}</h2>
+                        <div class="text-center bg-danger bg-opacity-10 rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 76px; height: 76px;">
+                            <span class="material-symbols-outlined fs-32 text-danger">error</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xxl-12">
+            <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-20">
+                    <h3 class="mb-0">Recent Automation Jobs</h3>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Task ID</th>
+                                <th>User</th>
+                                <th>Status</th>
+                                <th>Successful</th>
+                                <th>Total Attempts</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in recent_jobs %}
+                            <tr>
+                                <td>{{ job.task_id|default:"-" }}</td>
+                                <td>{{ job.user|default:"-" }}</td>
+                                <td>
+                                    <span class="badge {% if job.status == 'success' %}bg-success{% elif job.status == 'failed' %}bg-danger{% elif job.status == 'running' %}bg-primary{% elif job.status == 'partial' %}bg-warning text-dark{% else %}bg-secondary{% endif %} fs-14 px-3 py-2">
+                                        {{ job.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ job.successful_count }}</td>
+                                <td>{{ job.total_attempts }}</td>
+                                <td>{{ job.created|date:"d M Y, H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-secondary py-4">No automation jobs yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xxl-7 col-xxxl-12">
+            <div class="card bg-white p-20 rounded-10 border border-white mb-4 h-100">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-20">
+                    <div>
+                        <h3 class="mb-1">Current Job Progress</h3>
+                        <p class="text-body-color-60 mb-0 fs-14">Your most recent automation run.</p>
+                    </div>
+                    {% if current_job %}
+                        <span class="badge {% if current_job.status == 'success' %}bg-success{% elif current_job.status == 'failed' %}bg-danger{% elif current_job.status == 'running' %}bg-primary{% elif current_job.status == 'partial' %}bg-warning text-dark{% else %}bg-secondary{% endif %} fs-14 px-3 py-2">
+                            {{ current_job.get_status_display }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if current_job %}
+                    <div class="mb-20">
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
+                            <span class="fs-14 text-body-color-60">
+                                {{ current_job.successful_count }} of {{ current_job.effective_target_accounts|default:"?" }} accounts recovered
+                            </span>
+                            <span class="fs-14 fw-medium text-secondary">{{ current_job.progress }}%</span>
+                        </div>
+                        <div class="job-progress-bar">
+                            <div class="job-progress-bar__fill {% if current_job.status == 'failed' %}is-failed{% endif %}" style="width: {{ current_job.progress }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <span class="fs-14 text-body-color-60 d-block">Task ID</span>
+                            <span class="fs-15 fw-medium text-secondary">{{ current_job.task_id|default:"-"|truncatechars:18 }}</span>
+                        </div>
+                        <div class="col-4">
+                            <span class="fs-14 text-body-color-60 d-block">Total Attempts</span>
+                            <span class="fs-15 fw-medium text-secondary">{{ current_job.total_attempts }}</span>
+                        </div>
+                        <div class="col-4">
+                            <span class="fs-14 text-body-color-60 d-block">Started</span>
+                            <span class="fs-15 fw-medium text-secondary">{{ current_job.created|date:"d M Y, H:i" }}</span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <span class="material-symbols-outlined fs-40 text-body-color-40 d-block mb-2">smart_toy</span>
+                        <p class="text-muted mb-0">No automation job has been run yet. Start one to see live progress here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-xxl-5 col-xxxl-12">
+            <div class="card bg-white p-20 rounded-10 border border-white mb-4 h-100">
+                <h3 class="mb-1">Start New Automation Job</h3>
+                <p class="text-body-color-60 mb-20 fs-14">
+                    Launches a Facebook account recovery run using your configured SMS provider and settings.
+                </p>
+
+                {% if job_ready_issues %}
+                    <ul class="job-readiness-list">
+                        {% for issue in job_ready_issues %}
+                        <li>
+                            <span class="material-symbols-outlined">error</span>
+                            <span>{{ issue }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <a href="{% url 'admin:users_userconfig_changelist' %}" class="btn bg-primary bg-opacity-10 fw-normal text-primary w-100">
+                        Complete Setup
+                    </a>
+                {% elif has_active_job %}
+                    <p class="text-muted mb-20">A job is already running for your account. Check back once it finishes.</p>
+                    <button type="button" class="btn btn-secondary w-100" disabled>Job In Progress</button>
+                {% else %}
+                    <form method="post" action="{% url 'view_dashboards:start_job' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary w-100" data-submit-loading="Starting…">
+                            <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">play_circle</span>
+                            Start New Job
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

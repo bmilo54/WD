@@ -1,0 +1,62 @@
+{% load thumbnail %}
+<div class="row">
+    {% if thumbnail_image %}
+    <div class="col-12 mb-2">
+        {% thumbnail thumbnail_image "100x100" crop="center" as im %}
+            <a data-fslightbox="gallery" 
+               href="{{ widget.value.url }}" 
+               data-type="image"
+               data-caption="{{ filename }}">
+                <img src="{{ im.url }}" 
+                     width="{{ im.width }}" 
+                     height="{{ im.height }}" 
+                     class="img-thumbnail" 
+                     alt="{{ filename }}" 
+                     loading="lazy">
+            </a>
+        {% endthumbnail %}
+    </div>
+    {% endif %}
+    
+    <div class="col-12 mb-1">
+        <input type="{{ widget.type }}" 
+               name="{{ widget.name }}" 
+               class="form-control"
+               {% for name, value in widget.attrs.items %}
+                   {% if value is not False %}
+                       {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}
+                   {% endif %}
+               {% endfor %} />
+        
+        {% if widget.is_initial %}
+            <div class="mt-2">
+                <strong>{{ widget.initial_text }}:</strong>
+                {% if not thumbnail_image %}
+                    <a data-fslightbox="gallery" 
+                       href="{{ widget.value.url }}" 
+                       data-type="image"
+                       data-caption="{{ filename }}" 
+                       class="file-link text-decoration-none">
+                {% endif %}
+                    <span class="{% if not thumbnail_image %}text-primary{% else %}text-muted{% endif %}">{{ filename }}</span>
+                {% if not thumbnail_image %}
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+    
+    {% if widget.is_initial and not widget.is_required %}
+    <div class="col-12">
+        <div class="form-check mb-1">
+            <input type="checkbox" 
+                   name="{{ widget.checkbox_name }}" 
+                   id="{{ widget.checkbox_id }}" 
+                   class="form-check-input" />
+            <label for="{{ widget.checkbox_id }}" class="form-check-label">
+                {{ widget.clear_checkbox_label }}
+            </label>
+        </div>
+    </div>
+    {% endif %}
+</div>

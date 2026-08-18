@@ -1,0 +1,211 @@
+{% extends 'view_dashboards/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .job-progress-bar {
+        height: 10px;
+        border-radius: 999px;
+        background-color: #eef2f6;
+        overflow: hidden;
+    }
+    .job-progress-bar__fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+        transition: width 0.25s ease;
+    }
+    .job-progress-bar__fill.is-failed {
+        background: linear-gradient(90deg, #f87171 0%, #dc2626 100%);
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xxl-12">
+        <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-20">
+                <div>
+                    <h3 class="mb-1">Job #{{ job.pk }}</h3>
+                    <p class="text-body-color-60 mb-0 fs-14">Started by {{ job.user|default:"-" }}</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="job-status-badge" class="badge {% if job.status == 'success' %}bg-success{% elif job.status == 'failed' %}bg-danger{% elif job.status == 'running' %}bg-primary{% elif job.status == 'partial' %}bg-warning text-dark{% else %}bg-secondary{% endif %} fs-14 px-3 py-2">
+                        {{ job.get_status_display }}
+                    </span>
+                    <a href="{% url 'view_dashboards:jobs:list' %}" class="btn btn-sm bg-secondary bg-opacity-10 text-secondary fw-normal">
+                        Back to Jobs
+                    </a>
+                    {% if has_recovered_accounts %}
+                    <a href="{% url 'view_dashboards:jobs:export' job.pk %}" class="btn btn-sm bg-primary bg-opacity-10 text-primary fw-normal">
+                        <span class="material-symbols-outlined align-middle me-1" style="font-size: 16px;">download</span>
+                        Export .txt
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-20" data-poll-url="{% url 'view_dashboards:jobs:status' job.pk %}" data-is-finished="{{ job.status|default:'pending' }}">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
+                    <span class="fs-14 text-body-color-60">
+                        <span id="job-successful-count">{{ job.successful_count }}</span> of
+                        <span id="job-target-accounts">{{ job.effective_target_accounts|default:"?" }}</span> accounts recovered
+                    </span>
+                    <span id="job-progress-pct" class="fs-14 fw-medium text-secondary">{{ job.progress }}%</span>
+                </div>
+                <div class="job-progress-bar">
+                    <div id="job-progress-fill" class="job-progress-bar__fill {% if job.status == 'failed' %}is-failed{% endif %}" style="width: {{ job.progress }}%;"></div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <span class="fs-14 text-body-color-60 d-block">Task ID</span>
+                    <span class="fs-15 fw-medium text-secondary">{{ job.task_id|default:"-" }}</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="fs-14 text-body-color-60 d-block">Country</span>
+                    <span class="fs-15 fw-medium text-secondary">{{ job.effective_country|default:"-" }}</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="fs-14 text-body-color-60 d-block">Total Attempts</span>
+                    <span id="job-total-attempts" class="fs-15 fw-medium text-secondary">{{ job.total_attempts }}</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="fs-14 text-body-color-60 d-block">Started</span>
+                    <span class="fs-15 fw-medium text-secondary">{{ job.created|date:"d M Y, H:i" }}</span>
+                </div>
+            </div>
+
+            {% if job.error_message %}
+            <div id="job-error-banner" class="alert alert-danger d-flex align-items-start gap-2 mt-20 mb-0">
+                <span class="material-symbols-outlined" style="font-size: 18px;">error</span>
+                <div>
+                    <div class="fw-medium mb-1">Last error</div>
+                    <div id="job-error-text" class="fs-14">{{ job.error_message }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xxl-12">
+        <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+            <h3 class="mb-20">Flow Attempts</h3>
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Phone Number</th>
+                            <th>Status</th>
+                            <th>Fail Reason</th>
+                            <th>Error Message</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attempt in attempts %}
+                        <tr>
+                            <td>{{ attempt.phone_number|default:"-" }}</td>
+                            <td>
+                                <span class="badge {% if attempt.status == 'success' %}bg-success{% else %}bg-danger{% endif %} fs-14 px-3 py-2">
+                                    {{ attempt.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ attempt.get_fail_reason_display|default:"-" }}</td>
+                            <td>{{ attempt.error_message|default:"-"|truncatechars:60 }}</td>
+                            <td>{{ attempt.created|date:"d M Y, H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-secondary py-4">No attempts recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block page_js %}
+<script>
+    (function () {
+        var container = document.querySelector('[data-poll-url]');
+        if (!container) return;
+
+        var pollUrl = container.getAttribute('data-poll-url');
+        var finishedStatuses = ['success', 'partial', 'failed'];
+        if (finishedStatuses.indexOf(container.getAttribute('data-is-finished')) !== -1) {
+            return; // Already finished when the page loaded — nothing to poll for.
+        }
+
+        var badge = document.getElementById('job-status-badge');
+        var fill = document.getElementById('job-progress-fill');
+        var pct = document.getElementById('job-progress-pct');
+        var successCount = document.getElementById('job-successful-count');
+        var targetAccounts = document.getElementById('job-target-accounts');
+        var totalAttempts = document.getElementById('job-total-attempts');
+        var errorBanner = document.getElementById('job-error-banner');
+        var errorText = document.getElementById('job-error-text');
+
+        var badgeClassByStatus = {
+            success: 'bg-success',
+            failed: 'bg-danger',
+            running: 'bg-primary',
+            partial: 'bg-warning text-dark',
+            pending: 'bg-secondary',
+        };
+
+        function poll() {
+            fetch(pollUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (fill) fill.style.width = data.progress + '%';
+                    if (fill) fill.classList.toggle('is-failed', data.status === 'failed');
+                    if (pct) pct.textContent = data.progress + '%';
+                    if (successCount) successCount.textContent = data.successful_count;
+                    if (targetAccounts) targetAccounts.textContent = data.target_accounts || '?';
+                    if (totalAttempts) totalAttempts.textContent = data.total_attempts;
+                    if (badge) {
+                        badge.className = 'badge fs-14 px-3 py-2 ' + (badgeClassByStatus[data.status] || 'bg-secondary');
+                        badge.textContent = data.status_display;
+                    }
+
+                    if (data.error_message) {
+                        if (errorText) {
+                            errorText.textContent = data.error_message;
+                        } else if (errorBanner === null) {
+                            // Banner wasn't rendered on page load (no error yet) - build it now.
+                            var container = document.querySelector('[data-poll-url]');
+                            errorBanner = document.createElement('div');
+                            errorBanner.id = 'job-error-banner';
+                            errorBanner.className = 'alert alert-danger d-flex align-items-start gap-2 mt-20 mb-0';
+                            errorBanner.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">error</span>' +
+                                '<div><div class="fw-medium mb-1">Last error</div><div id="job-error-text" class="fs-14"></div></div>';
+                            container.appendChild(errorBanner);
+                            errorText = document.getElementById('job-error-text');
+                            errorText.textContent = data.error_message;
+                        }
+                    }
+
+                    if (data.is_finished) {
+                        // Reload once so the attempts table and export button reflect the final state.
+                        window.location.reload();
+                        return;
+                    }
+                    setTimeout(poll, 4000);
+                })
+                .catch(function () {
+                    setTimeout(poll, 8000);
+                });
+        }
+
+        setTimeout(poll, 4000);
+    })();
+</script>
+{% endblock page_js %}

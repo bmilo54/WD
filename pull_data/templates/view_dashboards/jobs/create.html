@@ -1,0 +1,154 @@
+{% extends 'view_dashboards/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .job-readiness-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 0 0 20px 0;
+        padding: 0;
+        list-style: none;
+    }
+    .job-readiness-list li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #b91c1c;
+    }
+    .job-readiness-list.is-info li {
+        color: #92400e;
+    }
+    .job-readiness-list .material-symbols-outlined {
+        font-size: 18px;
+    }
+    .saved-defaults-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .saved-defaults-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        font-size: 14px;
+        border-bottom: 1px dashed #e2e8f0;
+        padding-bottom: 10px;
+    }
+    .saved-defaults-list li:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xxl-7 col-xxxl-12">
+        <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-20">
+                <div>
+                    <h3 class="mb-1">Customize Automation Job</h3>
+                    <p class="text-body-color-60 mb-0 fs-14">
+                        Override any setting for this run only — leave a field blank to use your saved default (shown alongside).
+                    </p>
+                </div>
+                <a href="{% url 'view_dashboards:jobs:list' %}" class="btn btn-sm bg-secondary bg-opacity-10 text-secondary fw-normal">
+                    Back to Jobs
+                </a>
+            </div>
+
+            {% if has_active_job %}
+                <p class="text-muted mb-0">You already have an automation job in progress. Check back once it finishes.</p>
+            {% else %}
+                {% if job_ready_issues %}
+                    <ul class="job-readiness-list is-info">
+                        {% for issue in job_ready_issues %}
+                        <li>
+                            <span class="material-symbols-outlined">info</span>
+                            <span>{{ issue }} You can fill this in below for this run, or <a href="{% url 'admin:users_userconfig_changelist' %}">complete your saved setup</a>.</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-20">
+                        <label class="label fs-16 mb-2" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="text-danger fs-14 mt-1">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-primary" data-submit-loading="Starting…">
+                        <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">play_circle</span>
+                        Start Job
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-xxl-5 col-xxxl-12">
+        <div class="card bg-white p-20 rounded-10 border border-white mb-4">
+            <h3 class="mb-1">Your Saved Defaults</h3>
+            <p class="text-body-color-60 mb-20 fs-14">Used automatically for any field you leave blank.</p>
+
+            {% if user_config %}
+                <ul class="saved-defaults-list">
+                    <li>
+                        <span class="text-body-color-60">SMS Provider</span>
+                        <span class="fw-medium text-secondary">{{ user_config.sms_provider|default:"Not set" }}</span>
+                    </li>
+                    <li>
+                        <span class="text-body-color-60">SMS API Key</span>
+                        <span class="fw-medium text-secondary">
+                            {% if user_config.sms_api_key %}{{ user_config.sms_api_key|slice:":4" }}••••{{ user_config.sms_api_key|slice:"-4:" }}{% else %}Not set{% endif %}
+                        </span>
+                    </li>
+                    <li>
+                        <span class="text-body-color-60">Default Country</span>
+                        <span class="fw-medium text-secondary">{{ user_config.default_country|default:"Not set" }}</span>
+                    </li>
+                    <li>
+                        <span class="text-body-color-60">Target Accounts</span>
+                        <span class="fw-medium text-secondary">{{ user_config.target_accounts|default:"Not set" }}</span>
+                    </li>
+                    <li>
+                        <span class="text-body-color-60">Max Price</span>
+                        <span class="fw-medium text-secondary">{{ user_config.max_price|default:"Not set" }}</span>
+                    </li>
+                    <li>
+                        <span class="text-body-color-60">Default Password</span>
+                        <span class="fw-medium text-secondary">
+                            {% if user_config.default_password %}{{ user_config.default_password|slice:":2" }}••••••{% else %}Not set{% endif %}
+                        </span>
+                    </li>
+                </ul>
+            {% else %}
+                <div class="text-center py-4">
+                    <span class="material-symbols-outlined fs-40 text-body-color-40 d-block mb-2">settings</span>
+                    <p class="text-muted mb-0">You haven't saved any automation settings yet. Fill in the form as overrides, or <a href="{% url 'admin:users_userconfig_changelist' %}">set your defaults</a>.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block page_js %}
+<script src="{% static 'js/custom/provider_country_filter.js' %}"></script>
+{% endblock page_js %}

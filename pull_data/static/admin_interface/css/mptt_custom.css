@@ -1,0 +1,74 @@
+/* Target the tree-node elements based on data-level */
+.tree-node[data-level="0"] {
+    /* Root level - no extra padding needed */
+}
+
+.tree-node[data-level="1"] {
+    margin-left: 45px !important;
+}
+
+.tree-node[data-level="2"] {
+    margin-left: 90px !important;
+}
+
+.tree-node[data-level="3"] {
+    margin-left: 135px !important;
+}
+
+.tree-node[data-level="4"] {
+    margin-left: 180px !important;
+}
+
+.tree-node[data-level="5"] {
+    margin-left: 225px !important;
+}
+
+/* Style the entire row based on level */
+tr:has(.tree-node[data-level="0"]) {
+    background-color: #f0f0f0 !important;
+    font-weight: 600;
+}
+
+tr:has(.tree-node[data-level="1"]) {
+    background-color: #fafafa;
+}
+
+/* Hover effect for all rows */
+tbody tr:hover {
+    background-color: #e3f2fd !important;
+}
+
+/* Style the indented title column for better visual hierarchy */
+tr:has(.tree-node[data-level="1"]) .field-indented_title a {
+    padding-left: 20px;
+    display: inline-block;
+}
+
+tr:has(.tree-node[data-level="2"]) .field-indented_title a {
+    padding-left: 40px;
+    display: inline-block;
+}
+
+tr:has(.tree-node[data-level="3"]) .field-indented_title a {
+    padding-left: 60px;
+    display: inline-block;
+}
+
+tr:has(.tree-node[data-level="4"]) .field-indented_title a {
+    padding-left: 80px;
+    display: inline-block;
+}
+
+tr:has(.tree-node[data-level="5"]) .field-indented_title a {
+    padding-left: 100px;
+    display: inline-block;
+}
+
+/* Add visual indicator for parent nodes */
+/* tr:has(.tree-node.children) .field-indented_title a::before {
+    content: "📁 ";
+}
+
+tr:has(.tree-node:not(.children)) .field-indented_title a::before {
+    content: "📄 ";
+} */
