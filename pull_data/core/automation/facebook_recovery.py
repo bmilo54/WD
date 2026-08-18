@@ -546,19 +546,20 @@ class FacebookRecoveryBot:
             "save-device", "two_step_verification", "two_factor",
             "captcha", "notifications", "review", "save_login_info",
             "privacy_mutation_token", "help/", "policies",
+            "consent", "cookie",
         ]
         # Only inspect the part after the host so a marker never matches
         # "facebook.com" itself.
         path_and_query = url.split("facebook.com", 1)[-1].lower()
         return not any(marker in path_and_query for marker in blocked_markers)
 
-    def _advance_to_home_page(self, page, attempt, provider, activation_id, max_attempts=6, per_step_timeout=8000):
+    def _advance_to_home_page(self, page, attempt, provider, activation_id, max_attempts=8, per_step_timeout=8000):
         """
         Repeatedly resolves whatever interstitial screen Facebook shows after
-        OTP submission (new password, notification permission, "Save your
-        login info?", review recent devices, 2FA authenticator app prompt,
-        etc.) until the page actually reaches the logged-in home feed, or we
-        run out of attempts.
+        OTP submission (cookie consent, new password, notification permission,
+        "Save your login info?", review recent devices, 2FA authenticator app
+        prompt, etc.) until the page actually reaches the logged-in home feed,
+        or we run out of attempts.
 
         Returns a `(final_url, password_was_set)` tuple, where `password_was_set`
         is True only if Facebook actually showed the "create a new password"
@@ -580,6 +581,17 @@ class FacebookRecoveryBot:
 
             current_url = page.url
             logger.info(f"Post-login step {i + 1}/{max_attempts}. URL: {current_url}")
+
+            # Cookie consent ("Allow Facebook to use cookies" / "Izinkan
+            # Facebook menggunakan kuki") can overlay the home feed or any
+            # interstitial. Accept it before anything else: the generic
+            # handler below prefers "Don't Allow", which is wrong here, and
+            # `_is_home_page` would otherwise treat a feed-under-the-modal
+            # as done and skip the click.
+            if self._accept_cookie_consent_if_present(page):
+                logger.info("Accepted Facebook cookie consent dialog.")
+                page.wait_for_timeout(1500)
+                continue
 
             if self._is_home_page(current_url):
                 return current_url, password_was_set
@@ -697,6 +709,142 @@ class FacebookRecoveryBot:
             return True
         except PlaywrightTimeoutError:
             return False
+
+    def _accept_cookie_consent_if_present(self, page) -> bool:
+        """
+        If Facebook is showing a cookie-consent modal/banner (e.g. Malay
+        "Izinkan Facebook kepada cookies" / English "Allow Facebook to use
+        cookies"), click Allow. Returns True if a matching dialog was
+        found and an Allow-style button was clicked.
+        """
+        root = self._cookie_consent_root(page)
+        if root is None:
+            return False
+
+        allow_names = [
+            "Allow all cookies",
+            "Allow cookies",
+            "Allow the use of cookies",
+            "Allow essential and optional cookies",
+            "Accept all cookies",
+            "Accept cookies",
+            "Allow all",
+            "Accept all",
+            "Izinkan semua kuki",
+            "Izinkan semua cookie",
+            "Izinkan kuki",
+            "Izinkan cookie",
+            "Terima semua kuki",
+            "Terima semua cookie",
+            "Terima semua",
+        ]
+        # Short labels last, anchored at the start so "Don't Allow" /
+        # "Jangan Izinkan" are not matched by a substring "Allow"/"Izinkan".
+        short_allow = re.compile(r"^(Allow|Izinkan|Accept|Terima)\b", re.I)
+
+        for name in allow_names:
+            if self._click_cookie_consent_control(root, re.compile(re.escape(name), re.I)):
+                logger.info(f"Clicked cookie-consent allow button: {name!r}")
+                return True
+
+        if self._click_cookie_consent_control(root, short_allow):
+            logger.info("Clicked cookie-consent allow button (short label).")
+            return True
+
+        # Facebook sometimes uses a data-testid / data-cookiebanner instead
+        # of a labelled button.
+        for selector in [
+            '[data-testid="cookie-policy-manage-dialog-accept-button"]',
+            '[data-testid="cookie-policy-dialog-accept-button"]',
+            '[data-cookiebanner="accept_button"]',
+        ]:
+            locator = root.locator(selector)
+            if locator.count() == 0:
+                continue
+            try:
+                locator.first.click(timeout=5000)
+                logger.info(f"Clicked cookie-consent button via selector {selector}.")
+                return True
+            except PlaywrightTimeoutError:
+                logger.warning(f"Timed out clicking cookie-consent selector {selector}.")
+                return False
+
+        return False
+
+    def _click_cookie_consent_control(self, root, name_pattern) -> bool:
+        for role in ("button", "link"):
+            locator = root.get_by_role(role, name=name_pattern)
+            if locator.count() == 0:
+                continue
+            try:
+                locator.first.click(timeout=5000)
+                return True
+            except PlaywrightTimeoutError:
+                logger.warning(f"Timed out clicking cookie-consent {role} matching {name_pattern.pattern!r}.")
+                return False
+        return False
+
+    def _cookie_consent_root(self, page):
+        """
+        Return the cookie-consent dialog/banner locator if one is visible,
+        otherwise None. Requires cookie/kuki wording so a footer "Cookies"
+        policy link on the home feed is not treated as a consent prompt.
+        """
+        cookie_marker = re.compile(
+            r"cookie|kuki|kukie|storage technologies|teknologi penyimpanan",
+            re.I,
+        )
+        consent_phrases = [
+            "allow facebook",
+            "facebook to use cookies",
+            "facebook uses cookies",
+            "we use cookies",
+            "allow all cookies",
+            "allow cookies",
+            "cookies and other storage",
+            "izinkan facebook",
+            "izin facebook",
+            "facebook menggunakan kuki",
+            "facebook menggunakan cookie",
+            "menggunakan kuki",
+            "menggunakan cookie",
+            "kepada cookies",
+            "kepada kuki",
+            "izinkan semua kuki",
+            "izinkan semua cookie",
+            "izinkan kuki",
+            "izinkan cookie",
+            "allow the use of cookies",
+            "penggunaan kuki",
+            "penggunaan cookie",
+        ]
+
+        for role in ("dialog", "alertdialog"):
+            dialogs = page.get_by_role(role)
+            try:
+                count = dialogs.count()
+            except Exception:
+                count = 0
+            for i in range(count):
+                dialog = dialogs.nth(i)
+                try:
+                    if not dialog.is_visible():
+                        continue
+                    text = dialog.inner_text() or ""
+                except Exception:
+                    continue
+                if cookie_marker.search(text):
+                    return dialog
+
+        for phrase in consent_phrases:
+            locator = page.get_by_text(re.compile(re.escape(phrase), re.I), exact=False)
+            try:
+                if locator.count() > 0 and locator.first.is_visible():
+                    return page
+            except Exception:
+                continue
+
+        return None
 
     def _is_verify_its_you_page(self, page) -> bool:
         """
