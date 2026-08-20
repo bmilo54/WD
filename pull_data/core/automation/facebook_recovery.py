@@ -375,51 +375,23 @@ class FacebookRecoveryBot:
                         ], timeout=5000)
                         page.wait_for_timeout(1500)
 
-                    # Step 5: Wait for OTP from SMS provider
-                    # Phase 1: Wait up to 1 minute for the OTP to arrive
-                    logger.info("Waiting for OTP from SMS provider (Phase 1 - 60s)...")
+                    # Step 5: Wait for OTP from SMS provider.
+                    # One continuous wait of 10 minutes (poll every 5s,
+                    # 120 attempts x 5s = 600s). We don't split this into a
+                    # "wait 60s then click 'Didn't get a code?'/Resend" phase
+                    # anymore: in practice Facebook doesn't reliably show a
+                    # clickable resend control here, so that step did nothing
+                    # but add complexity. Just wait the full window for the
+                    # SMS to arrive.
+                    logger.info("Waiting for OTP from SMS provider (up to 10 minutes)...")
                     otp_code = None
                     try:
-                        otp_code = provider.wait_for_otp(activation_id, poll_interval=5, max_attempts=12)
+                        otp_code = provider.wait_for_otp(activation_id, poll_interval=5, max_attempts=120)
                     except SMSTimeoutError:
                         pass
 
-                    # If nothing arrived, try clicking "Didn't get a code?" on the page
                     if not otp_code:
-                        logger.info("No OTP after 60s. Trying to click 'Didn't get a code?'...")
-                        resend_clicked = False
-                        # Try as a button first
-                        resend_clicked = self._click_button_by_names(page, [
-                            "Resend code", "Kirim ulang kode",
-                            "Send code again", "Kirim kode lagi",
-                            "Resend", "Kirim ulang",
-                        ], timeout=2000)
-                        # Try as a text link (Facebook renders this as a link, not a button)
-                        if not resend_clicked:
-                            for link_text in [
-                                "Didn't get a code?",
-                                "Tidak menerima kode?",
-                                "Tidak dapat kode?",
-                            ]:
-                                locator = page.get_by_text(link_text, exact=False)
-                                if locator.count() > 0:
-                                    locator.first.click()
-                                    logger.info(f"Clicked resend link: '{link_text}'")
-                                    resend_clicked = True
-                                    break
-                        page.wait_for_timeout(2000)
-
-
-                    # Phase 2: Wait another 9 minutes (Phase 1 + Phase 2 = 10 minutes total)
-                    if not otp_code:
-                        logger.info("Waiting for OTP (Phase 2 - 540s)...")
-                        try:
-                            otp_code = provider.wait_for_otp(activation_id, poll_interval=5, max_attempts=108)
-                        except SMSTimeoutError:
-                            pass
-
-                    if not otp_code:
-                        logger.info("OTP Timeout after all retries. Moving to next number.")
+                        logger.info("OTP Timeout after 10 minutes. Moving to next number.")
                         self._fail_attempt(attempt, provider, activation_id, "timeout")
                         return
 
@@ -1350,6 +1322,90 @@ class FacebookRecoveryBot:
         page.wait_for_timeout(2000)
         return True
 
+    def _accounts_all_match_entered_number(self, page) -> bool:
+        """
+        True when the "Choose your account" screen states that every listed
+        profile matches the email/number we entered (e.g. "These Facebook
+        profiles match the email or mobile number you entered"). In that case
+        the accounts differ only by masked name and all belong to our number,
+        so picking any of them is safe.
+        """
+        reassurance_texts = [
+            "match the email or mobile number you entered",
+            "match the email address or mobile number you entered",
+            "profiles match the email",
+            "match the email or mobile number",
+            "cocok dengan alamat email atau nomor ponsel",
+            "cocok dengan email atau nomor ponsel",
+            "sesuai dengan email atau nomor ponsel",
+        ]
+        for text in reassurance_texts:
+            if page.get_by_text(re.compile(re.escape(text), re.I), exact=False).count() > 0:
+                return True
+        return False
+
+    def _select_first_account_and_continue(self, page) -> bool:
+        """
+        Select the first account on the "Choose your account" screen. Used
+        only as a fallback when Facebook has confirmed every listed profile
+        matches the number we entered but shows them by masked name only
+        (no phone number on any row to match precisely against).
+
+        Returns False if no selectable account row could be found.
+        """
+        # Older UI: a radio list. Pick the first radio, then Continue.
+        radios = page.locator('input[type="radio"]')
+        if radios.count() > 0:
+            try:
+                radios.first.check()
+            except Exception:
+                try:
+                    radios.first.click()
+                except Exception:
+                    return False
+            self._click_button_by_names(page, ["Continue", "Lanjutkan", "Lanjut"], timeout=5000)
+            page.wait_for_timeout(2000)
+            return True
+
+        # Newer UI: each account is a clickable row (button/link). Skip the
+        # page's site chrome (footer links, language switcher, the "back"
+        # arrow) so we click a real account row, not a navigation control.
+        non_account_keywords = [
+            "sign up", "log in", "log into", "messenger", "facebook lite",
+            "video", "meta pay", "meta store", "meta quest", "ray-ban",
+            "meta ai", "instagram", "threads", "privacy", "about",
+            "create ad", "create page", "developers", "careers", "cookies",
+            "ad choices", "terms", "help", "contact", "uploading",
+            "non-users", "more languages", "english", "filipino", "bisaya",
+            "español", "日本語", "한국어", "中文",
+            "back", "kembali",
+        ]
+        for role in ("button", "link"):
+            items = page.get_by_role(role)
+            try:
+                count = items.count()
+            except Exception:
+                count = 0
+            for i in range(count):
+                item = items.nth(i)
+                try:
+                    if not item.is_visible():
+                        continue
+                    name = (item.inner_text() or "").strip()
+                except Exception:
+                    continue
+                if not name or any(k in name.lower() for k in non_account_keywords):
+                    continue
+                try:
+                    item.click()
+                except Exception:
+                    continue
+                self._click_button_by_names(page, ["Continue", "Lanjutkan", "Lanjut"], timeout=5000)
+                page.wait_for_timeout(2000)
+                return True
+
+        return False
+
     def _select_sms_and_continue(self, page, phone_number=None) -> bool:
         """
         On Facebook's "Choose a way to log in" screen, finds the "Get code via
@@ -1557,12 +1613,27 @@ class FacebookRecoveryBot:
         # Scenario 2: multiple accounts share the same phone number
         if self._is_multiple_accounts_page(page):
             if not self._select_account_matching_phone_and_continue(page, phone_number):
-                logger.info("Could not find an account matching this phone number. Failing attempt.")
-                self._fail_attempt(
-                    attempt, provider, activation_id, "phone_mismatch",
-                    "Facebook showed an account list but none of the entries matched the phone number we submitted",
-                )
-                return False
+                # No row displayed our phone number. If Facebook explicitly
+                # says every listed profile matches the number we entered
+                # (masked-name-only "Choose your account" list, no phone
+                # digits on any row to match against), any of them is a
+                # valid recovery target for this number - pick the first
+                # instead of failing. We only do this when that guarantee
+                # text is present, so a list that shows DIFFERENT phone
+                # numbers still fails rather than risk the wrong account.
+                if self._accounts_all_match_entered_number(page) and \
+                        self._select_first_account_and_continue(page):
+                    logger.info(
+                        "Account list showed only masked names but Facebook "
+                        "confirmed all match the entered number. Selected the first account."
+                    )
+                else:
+                    logger.info("Could not find an account matching this phone number. Failing attempt.")
+                    self._fail_attempt(
+                        attempt, provider, activation_id, "phone_mismatch",
+                        "Facebook showed an account list but none of the entries matched the phone number we submitted",
+                    )
+                    return False
 
             # Selecting an account also clicks its own "Continue" button, which
             # can likewise trigger a reCAPTCHA before the login-method screen shows up.
