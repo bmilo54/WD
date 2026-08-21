@@ -376,22 +376,22 @@ class FacebookRecoveryBot:
                         page.wait_for_timeout(1500)
 
                     # Step 5: Wait for OTP from SMS provider.
-                    # One continuous wait of 10 minutes (poll every 5s,
-                    # 120 attempts x 5s = 600s). We don't split this into a
+                    # One continuous wait of 6 minutes (poll every 5s,
+                    # 72 attempts x 5s = 360s). We don't split this into a
                     # "wait 60s then click 'Didn't get a code?'/Resend" phase
                     # anymore: in practice Facebook doesn't reliably show a
                     # clickable resend control here, so that step did nothing
                     # but add complexity. Just wait the full window for the
                     # SMS to arrive.
-                    logger.info("Waiting for OTP from SMS provider (up to 10 minutes)...")
+                    logger.info("Waiting for OTP from SMS provider (up to 6 minutes)...")
                     otp_code = None
                     try:
-                        otp_code = provider.wait_for_otp(activation_id, poll_interval=5, max_attempts=120)
+                        otp_code = provider.wait_for_otp(activation_id, poll_interval=5, max_attempts=72)
                     except SMSTimeoutError:
                         pass
 
                     if not otp_code:
-                        logger.info("OTP Timeout after 10 minutes. Moving to next number.")
+                        logger.info("OTP Timeout after 6 minutes. Moving to next number.")
                         self._fail_attempt(attempt, provider, activation_id, "timeout")
                         return
 
